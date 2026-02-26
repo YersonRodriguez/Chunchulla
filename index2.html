@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chunchulla El Sabor Llanero</title>
+
+<!-- Leaflet -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<style>
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+}
+
+body{
+font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;
+background:linear-gradient(135deg,#1a1a1a 0%,#2d2d2d 100%);
+color:#fff;
+min-height:100vh;
+}
+
+.container{
+max-width:600px;
+margin:0 auto;
+padding:20px;
+}
+
+header{
+text-align:center;
+padding:30px 20px;
+background:linear-gradient(135deg,#dc2626 0%,#b91c1c 100%);
+border-radius:20px;
+margin-bottom:30px;
+}
+
+h1{
+font-size:2.2rem;
+color:#fef08a;
+}
+
+.hero-image{
+width:100%;
+border-radius:20px;
+margin-bottom:30px;
+height:250px;
+object-fit:cover;
+}
+
+.order-section{
+background:#2d2d2d;
+padding:25px;
+border-radius:20px;
+border:2px solid #dc2626;
+}
+
+label{
+display:block;
+margin-bottom:10px;
+color:#fef08a;
+font-weight:600;
+}
+
+select{
+width:100%;
+padding:12px;
+border-radius:10px;
+border:2px solid #dc2626;
+background:#1a1a1a;
+color:#fff;
+}
+
+.total{
+font-size:1.4rem;
+color:#fef08a;
+text-align:center;
+margin:20px 0;
+font-weight:bold;
+}
+
+.location-btn{
+width:100%;
+padding:14px;
+background:#dc2626;
+color:#fff;
+border:none;
+border-radius:10px;
+font-weight:bold;
+cursor:pointer;
+margin-top:10px;
+}
+
+.whatsapp-btn{
+width:100%;
+padding:18px;
+background:#16a34a;
+color:#fff;
+border:none;
+border-radius:15px;
+font-size:1.2rem;
+font-weight:bold;
+cursor:pointer;
+margin-top:20px;
+}
+
+#map{
+width:100%;
+height:350px;
+border-radius:15px;
+margin-top:20px;
+display:none;
+}
+
+.map-actions{
+display:none;
+margin-top:10px;
+gap:10px;
+}
+
+.map-actions button{
+flex:1;
+padding:10px;
+border:none;
+border-radius:10px;
+font-weight:bold;
+cursor:pointer;
+}
+
+.btn-confirm{background:#16a34a;color:#fff;}
+.btn-cancel{background:#dc2626;color:#fff;}
+
+.modal{
+display:none;
+position:fixed;
+z-index:1000;
+left:0;
+top:0;
+width:100%;
+height:100%;
+background:rgba(0,0,0,0.8);
+}
+
+.modal-content{
+background:#2d2d2d;
+margin:10% auto;
+padding:20px;
+border-radius:20px;
+width:90%;
+max-width:500px;
+}
+
+.info{
+background:#fef08a;
+color:#000;
+padding:20px;
+border-radius:15px;
+text-align:center;
+margin-top:20px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<header>
+<h1>🔥 Chunchulla El Sabor Llanero 🔥</h1>
+<p>Auténtico sabor de los Llanos</p>
+</header>
+
+<img src="https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=800" class="hero-image">
+
+<div class="order-section">
+
+<label>Cantidad:</label>
+<select id="cantidad" onchange="calcularTotal()"></select>
+<p style="color:#fef08a;margin-top:5px;">Precio por porción: $18.000</p>
+
+<div class="total">
+Total: $<span id="total">18.000</span>
+</div>
+
+<button class="location-btn" onclick="abrirModal()">📍 Elegir Ubicación</button>
+<p id="status" style="color:#4ade80;display:none;margin-top:8px;">✅ Ubicación seleccionada</p>
+
+<button class="whatsapp-btn" onclick="enviarWhatsApp()">👉 Pedir por WhatsApp</button>
+
+</div>
+
+<div class="info">
+📍 Domicilios en Granada, Meta <br>
+⏰ 5:00 PM – 11:00 PM
+</div>
+
+</div>
+
+<!-- MODAL -->
+<div id="modal" class="modal">
+<div class="modal-content">
+
+<h3 style="color:#fef08a;">Selecciona tu ubicación</h3>
+
+<button class="location-btn" onclick="usarUbicacionActual()">Usar ubicación actual</button>
+<button class="location-btn" onclick="mostrarMapa()">Elegir en el mapa</button>
+
+<div id="map"></div>
+
+<div class="map-actions">
+<button class="btn-confirm" onclick="confirmarMapa()">Confirmar</button>
+<button class="btn-cancel" onclick="cerrarModal()">Cancelar</button>
+</div>
+
+</div>
+</div>
+
+<script>
+const PRECIO=18000;
+let ubicacion="";
+let map,marker;
+
+// llenar select automáticamente 1-20
+const select=document.getElementById("cantidad");
+for(let i=1;i<=20;i++){
+let opt=document.createElement("option");
+opt.value=i;
+opt.text=i+" porción"+(i>1?"es":"");
+select.appendChild(opt);
+}
+
+function calcularTotal(){
+let cantidad=select.value;
+let total=cantidad*PRECIO;
+document.getElementById("total").innerText=total.toLocaleString("es-CO");
+}
+
+function abrirModal(){
+document.getElementById("modal").style.display="block";
+}
+
+function cerrarModal(){
+document.getElementById("modal").style.display="none";
+}
+
+function usarUbicacionActual(){
+navigator.geolocation.getCurrentPosition(pos=>{
+let lat=pos.coords.latitude;
+let lng=pos.coords.longitude;
+ubicacion=`https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=18/${lat}/${lng}`;
+document.getElementById("status").style.display="block";
+cerrarModal();
+});
+}
+
+function mostrarMapa(){
+document.getElementById("map").style.display="block";
+document.querySelector(".map-actions").style.display="flex";
+
+if(!map){
+map=L.map("map").setView([3.5375,-73.7058],14);
+
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{
+attribution:"© OpenStreetMap"
+}).addTo(map);
+
+marker=L.marker([3.5375,-73.7058],{draggable:true}).addTo(map);
+
+map.on("click",e=>{
+marker.setLatLng(e.latlng);
+});
+
+map.invalidateSize();
+}
+}
+
+function confirmarMapa(){
+let pos=marker.getLatLng();
+ubicacion=`https://www.openstreetmap.org/?mlat=${pos.lat}&mlon=${pos.lng}#map=18/${pos.lat}/${pos.lng}`;
+document.getElementById("status").style.display="block";
+cerrarModal();
+}
+
+function enviarWhatsApp(){
+if(!ubicacion){
+alert("Selecciona ubicación primero");
+return;
+}
+
+let cantidad=select.value;
+let total=cantidad*PRECIO;
+
+let mensaje=`Hola, quiero pedir chunchulla:
+
+Cantidad: ${cantidad}
+Precio unidad: $${PRECIO.toLocaleString("es-CO")}
+Total: $${total.toLocaleString("es-CO")}
+
+Ubicación:
+${ubicacion}`;
+
+let url=`https://wa.me/573204905175?text=${encodeURIComponent(mensaje)}`;
+window.open(url,"_blank");
+}
+
+calcularTotal();
+</script>
+
+</body>
+</html>
